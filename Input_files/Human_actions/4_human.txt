@@ -1,0 +1,6 @@
+Move UP
+Move UP
+Move RIGHT
+Move RIGHT
+Instruction: Can you come and unlock this door?
+Move RIGHT

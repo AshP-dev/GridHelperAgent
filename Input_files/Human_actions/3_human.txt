@@ -1,0 +1,19 @@
+Move LEFT
+Move LEFT
+Instruction: I'm going for the red key, can you get the yellow key?
+Move LEFT
+Move LEFT
+Move LEFT
+Pick_up_RED_key
+Move RIGHT
+Move RIGHT
+Move RIGHT
+Move RIGHT
+Move RIGHT
+Move DOWN
+Move DOWN
+Move DOWN
+Move DOWN
+Unlock_RED_door
+Move DOWN
+Move DOWN

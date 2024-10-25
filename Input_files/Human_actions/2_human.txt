@@ -1,0 +1,7 @@
+Move RIGHT
+Move RIGHT
+Move RIGHT
+Move RIGHT
+Instruction: Can you pass me the red keys?
+Move DOWN
+Move DOWN
