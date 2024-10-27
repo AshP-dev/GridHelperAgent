@@ -36,8 +36,14 @@ def load_human_actions(filename):
                 actions.append((action, direction))
             elif parts[0].startswith("Instruction"):
                 # Extract requested key color
-                key_color = parts[1].split()[-2][0].lower()  # e.g., 'y' for "yellow"
+                key_color = parts[1].split()[-2][0].lower()  # e.g., 'r' for "red"
                 actions.append(('Request', key_color))
+            elif parts[0].startswith("Pick_up"):
+                key_color = parts[0].split('_')[2][0].lower()  # e.g., 'r' for "RED"
+                actions.append(('Pick_up', key_color))
+            elif parts[0].startswith("Unlock"):
+                key_color = parts[0].split('_')[1][0].lower()  # e.g., 'b' for "blue"
+                actions.append(('Unlock', key_color))
     return actions
 
 # Step 3: Pathfinding with A* to retrieve keys and move to human
@@ -89,8 +95,7 @@ def simulate(grid, agent_pos, human_pos, actions, keys):
             new_hx, new_hy = human_pos[0] + dx, human_pos[1] + dy
             if grid[new_hx][new_hy] != 'W':  # Move human if not a wall
                 human_pos = (new_hx, new_hy)
-                print(f"T{instruction_number}: My_position {human_pos}")
-                instruction_number += 1
+                print(f"My_position {human_pos}")
         
         elif action == 'Request':
             key = detail
@@ -98,31 +103,59 @@ def simulate(grid, agent_pos, human_pos, actions, keys):
                 key_pos = keys[key]
                 path_to_key = find_path(grid, agent_pos, key_pos, collected_keys)
                 for direction, pos in path_to_key:
-                    print(f"T{instruction_number}: Agent_{direction} {pos}")
-                    instruction_number += 1
+                    print(f"{direction} {pos}")
                 
                 # Pick up the key
                 collected_keys.add(key)
-                print(f"T{instruction_number}: Pick_up_{key.upper()}_key")
-                instruction_number += 1
+                print(f"Pick_up_{key.upper()}_key")
                 agent_pos = key_pos  # Update agent's position to the key's location
+                
+                # Update human position based on remaining actions
+                for remaining_action, remaining_detail in actions[instruction_number:]:
+                    if remaining_action == 'Move':
+                        dx, dy = directions[remaining_detail]
+                        new_hx, new_hy = human_pos[0] + dx, human_pos[1] + dy
+                        if grid[new_hx][new_hy] != 'W':  # Move human if not a wall
+                            human_pos = (new_hx, new_hy)
                 
                 # Path to human
                 path_to_human = find_path(grid, agent_pos, human_pos, collected_keys)
                 for direction, pos in path_to_human:
-                    print(f"T{instruction_number}: Agent_{direction} {pos}")
-                    instruction_number += 1
+                    print(f"{direction} {pos}")
                 
-                print(f"T{instruction_number}: Locate_human: {human_pos}")
-                instruction_number += 1
-                print(f"T{instruction_number}: Move_to_Human")
-                instruction_number += 1
+                print(f"Locate_human: {human_pos}")
+                print(f"Move_to_Human:")
                 agent_pos = human_pos  # Update agent's position to the human's location
+
+                # Drop the key
+                print(f"Drop_{key.upper()}_key")
+                collected_keys.remove(key)
+
+        elif action == 'Pick_up':
+            key = detail
+            collected_keys.add(key)
+            print(f"Pick_up_{key.upper()}_key")
+
+        elif action == 'Unlock':
+            key = detail
+            if key in collected_keys:
+                print(f"Unlock_{key.upper()}_door")
+                collected_keys.remove(key)
+
+        instruction_number += 1
 
     return agent_pos, human_pos
 
-# Load grid and actions, then simulate
-# Main execution 
-grid, agent_pos, human_pos, keys = load_grid('Input_files/Grid_configurations/2_grid.txt')
-actions = load_human_actions('Input_files/Human_actions/2_human.txt')
-simulate(grid, agent_pos, human_pos, actions, keys)
+# Main execution function
+def main(grid_file, actions_file):
+    grid, agent_pos, human_pos, keys = load_grid(grid_file)
+    actions = load_human_actions(actions_file)
+    simulate(grid, agent_pos, human_pos, actions, keys)
+
+# Example usage
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 3:
+        print("Usage: python P2_testing.py <grid_file> <actions_file>")
+    else:
+        main(sys.argv[1], sys.argv[2])
