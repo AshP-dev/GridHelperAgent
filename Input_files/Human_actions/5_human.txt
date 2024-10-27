@@ -1,0 +1,11 @@
+Move DOWN
+Move LEFT
+Move LEFT
+Move LEFT
+Move LEFT
+Pick_up_RED_key
+Move RIGHT
+Move RIGHT
+Instruction: Can you help me unlock the blue door there?
+Move RIGHT
+Move RIGHT
