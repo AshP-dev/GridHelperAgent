@@ -1,5 +1,4 @@
 import heapq
-import sys
 
 # Define movement directions and commands
 directions = {'UP': (-1, 0), 'DOWN': (1, 0), 'LEFT': (0, -1), 'RIGHT': (0, 1)}
@@ -122,15 +121,8 @@ def simulate(grid, agent_pos, human_pos, actions, keys):
 
     return agent_pos, human_pos
 
-# Load grid and actions, then simulpyate
-if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python3 P2_testing.py <grid.txt> <human.txt>")
-        sys.exit(1)
-
-    grid_file = sys.argv[1]
-    human_file = sys.argv[2]
-
-    grid, agent_pos, human_pos, keys = load_grid(grid_file)
-    actions = load_human_actions(human_file)
-    simulate(grid, agent_pos, human_pos, actions, keys)
+# Load grid and actions, then simulate
+# Main execution 
+grid, agent_pos, human_pos, keys = load_grid('Input_files/Grid_configurations/2_grid.txt')
+actions = load_human_actions('Input_files/Human_actions/2_human.txt')
+simulate(grid, agent_pos, human_pos, actions, keys)
