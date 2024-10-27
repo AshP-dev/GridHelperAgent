@@ -1,8 +1,9 @@
 import heapq
+import sys
 
 # Define movement directions and commands
-directions = {'MOVE_UP': (-1, 0), 'MOVE_DOWN': (1, 0), 'MOVE_LEFT': (0, -1), 'MOVE_RIGHT': (0, 1)}
-key_door_map = {'b': 'B', 'r': 'R', 'g': 'G'}  # Maps keys to doors
+directions = {'UP': (-1, 0), 'DOWN': (1, 0), 'LEFT': (0, -1), 'RIGHT': (0, 1)}
+key_door_map = {'b': 'B', 'r': 'R', 'g': 'G', 'y': 'Y'}  # Maps keys to doors
 
 # Step 1: Load the grid from grid.txt
 def load_grid(filename):
@@ -31,15 +32,14 @@ def load_human_actions(filename):
                 # Skip lines without expected format "T<number>: <instruction>"
                 continue
             
-            if parts[1].startswith("Move"):
-                action, direction = parts[1].split()
+            if parts[0].startswith("Move"):
+                action, direction = parts[0].split()
                 actions.append((action, direction))
-            elif parts[1].startswith("Instruction"):
+            elif parts[0].startswith("Instruction"):
                 # Extract requested key color
-                key_color = parts[1].split()[-2][0].lower()  # e.g., 'r' for "red"
+                key_color = parts[1].split()[-2][0].lower()  # e.g., 'y' for "yellow"
                 actions.append(('Request', key_color))
     return actions
-
 
 # Step 3: Pathfinding with A* to retrieve keys and move to human
 def heuristic(start, end):
@@ -99,7 +99,7 @@ def simulate(grid, agent_pos, human_pos, actions, keys):
                 key_pos = keys[key]
                 path_to_key = find_path(grid, agent_pos, key_pos, collected_keys)
                 for direction, pos in path_to_key:
-                    print(f"T{instruction_number}: {direction} {pos}")
+                    print(f"T{instruction_number}: Agent_{direction} {pos}")
                     instruction_number += 1
                 
                 # Pick up the key
@@ -111,7 +111,7 @@ def simulate(grid, agent_pos, human_pos, actions, keys):
                 # Path to human
                 path_to_human = find_path(grid, agent_pos, human_pos, collected_keys)
                 for direction, pos in path_to_human:
-                    print(f"T{instruction_number}: {direction} {pos}")
+                    print(f"T{instruction_number}: Agent_{direction} {pos}")
                     instruction_number += 1
                 
                 print(f"T{instruction_number}: Locate_human: {human_pos}")
@@ -122,10 +122,15 @@ def simulate(grid, agent_pos, human_pos, actions, keys):
 
     return agent_pos, human_pos
 
+# Load grid and actions, then simulpyate
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python3 P2_testing.py <grid.txt> <human.txt>")
+        sys.exit(1)
 
-# Load grid and actions, then simulate
-# Main execution 
-grid, agent_pos, human_pos, keys = load_grid('Input_files/Grid_configurations/1_grid.txt')
-actions = load_human_actions('Input_files/Human_actions/1_human.txt')
-final_agent_pos, final_human_pos = simulate(grid, agent_pos, human_pos, actions, keys)
-print(f"Final Positions -> Agent: {final_agent_pos}, Human: {final_human_pos}")
+    grid_file = sys.argv[1]
+    human_file = sys.argv[2]
+
+    grid, agent_pos, human_pos, keys = load_grid(grid_file)
+    actions = load_human_actions(human_file)
+    simulate(grid, agent_pos, human_pos, actions, keys)
