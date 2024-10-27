@@ -1,7 +1,7 @@
 import heapq
 
 # Define movement directions and commands
-directions = {'UP': (-1, 0), 'DOWN': (1, 0), 'LEFT': (0, -1), 'RIGHT': (0, 1)}
+directions = {'MOVE_UP': (-1, 0), 'MOVE_DOWN': (1, 0), 'MOVE_LEFT': (0, -1), 'MOVE_RIGHT': (0, 1)}
 key_door_map = {'b': 'B', 'r': 'R', 'g': 'G'}  # Maps keys to doors
 
 # Step 1: Load the grid from grid.txt
