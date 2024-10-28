@@ -1,0 +1,9 @@
+My_position (10, 9)
+LEFT (10, 8)
+LEFT (10, 7)
+LEFT (10, 6)
+LEFT (10, 5)
+Pick_up_Y_key
+Locate_human: (0, 5)
+Move_to_Human:
+Drop_Y_key

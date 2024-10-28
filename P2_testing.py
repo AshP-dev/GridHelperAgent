@@ -1,10 +1,11 @@
+import os
 import heapq
 
 # Define movement directions and commands
 directions = {'UP': (-1, 0), 'DOWN': (1, 0), 'LEFT': (0, -1), 'RIGHT': (0, 1)}
 key_door_map = {'b': 'B', 'r': 'R', 'g': 'G', 'y': 'Y'}  # Maps keys to doors
 
-# Step 1: Load the grid from grid.txt
+# Load grid from file
 def load_grid(filename):
     with open(filename, 'r') as file:
         grid = [list(line.strip()) for line in file.readlines()]
@@ -21,35 +22,44 @@ def load_grid(filename):
                 keys[cell] = (i, j)  # store key locations
     return grid, agent_pos, human_pos, keys
 
-# Step 2: Parse human actions from human.txt
-def load_human_actions(filename):
+# Update human position based on action
+def update_human_position(human_pos, action, detail):
+    if action == 'Move':
+        dx, dy = directions[detail]
+        new_hx, new_hy = human_pos[0] + dx, human_pos[1] + dy
+        return (new_hx, new_hy)
+    return human_pos
+
+# Parse human actions
+def load_human_actions(filename, human_pos):
     actions = []
     with open(filename, 'r') as file:
         for line in file:
             parts = line.strip().split(': ')
             if len(parts) < 2:
-                # Skip lines without expected format "T<number>: <instruction>"
                 continue
             
             if parts[0].startswith("Move"):
                 action, direction = parts[0].split()
+                human_pos = update_human_position(human_pos, action, direction)
+                print(f"Human's new position: {human_pos}")  # Update human's position
                 actions.append((action, direction))
             elif parts[0].startswith("Instruction"):
-                # Extract requested key color
-                key_color = parts[1].split()[-2][0].lower()  # e.g., 'r' for "red"
+                key_color = parts[1].split()[-2][0].lower()
                 actions.append(('Request', key_color))
             elif parts[0].startswith("Pick_up"):
-                key_color = parts[0].split('_')[2][0].lower()  # e.g., 'r' for "RED"
+                key_color = parts[0].split('_')[2][0].lower()
                 actions.append(('Pick_up', key_color))
             elif parts[0].startswith("Unlock"):
-                key_color = parts[0].split('_')[1][0].lower()  # e.g., 'b' for "blue"
+                key_color = parts[0].split('_')[1][0].lower()
                 actions.append(('Unlock', key_color))
-    return actions
+    return actions, human_pos
 
-# Step 3: Pathfinding with A* to retrieve keys and move to human
+# Heuristic function for A*
 def heuristic(start, end):
     return abs(start[0] - end[0]) + abs(start[1] - end[1])
 
+# A* pathfinding function
 def find_path(grid, start, goal, collected_keys):
     rows, cols = len(grid), len(grid[0])
     heap = [(0, start)]
@@ -82,80 +92,71 @@ def find_path(grid, start, goal, collected_keys):
         path.append((direction, current))
         current = parent
 
-    return path[::-1]  # Reverse path to start from the beginning
+    return path[::-1]  # Reverse path
 
-# Step 4: Simulate the human actions
-def simulate(grid, agent_pos, human_pos, actions, keys):
+# Simulation function with updated human position tracking
+def simulate(grid, agent_pos, human_pos, actions, keys, result_file):
     collected_keys = set()
-    instruction_number = 1  # Start numbering instructions
+    instruction_number = 1
 
-    for action, detail in actions:
-        if action == 'Move':
-            dx, dy = directions[detail]
-            new_hx, new_hy = human_pos[0] + dx, human_pos[1] + dy
-            if grid[new_hx][new_hy] != 'W':  # Move human if not a wall
-                human_pos = (new_hx, new_hy)
-                print(f"My_position {human_pos}")
+    with open(result_file, "w") as f:
+        f.write(f"My_position {agent_pos}\n")
         
-        elif action == 'Request':
-            key = detail
-            if key in keys:
-                key_pos = keys[key]
-                path_to_key = find_path(grid, agent_pos, key_pos, collected_keys)
-                for direction, pos in path_to_key:
-                    print(f"{direction} {pos}")
-                
-                # Pick up the key
+        for action, detail in actions:
+            if action == 'Move':
+                human_pos = update_human_position(human_pos, action, detail)
+                f.write(f"Human_position {human_pos}\n")
+            
+            elif action == 'Request':
+                key = detail
+                if key in keys:
+                    key_pos = keys[key]
+                    path_to_key = find_path(grid, agent_pos, key_pos, collected_keys)
+                    for direction, pos in path_to_key:
+                        f.write(f"{direction} {pos}\n")
+                    
+                    collected_keys.add(key)
+                    f.write(f"Pick_up_{key.upper()}_key\n")
+                    agent_pos = key_pos
+
+                    # Track latest human position dynamically
+                    path_to_human = find_path(grid, agent_pos, human_pos, collected_keys)
+                    f.write(f"Locate_human: {human_pos}\n")
+                    f.write("Move_to_Human:\n")
+                    for direction, pos in path_to_human:
+                        f.write(f"{direction} {pos}\n")
+                    
+                    f.write(f"Drop_{key.upper()}_key\n")
+                    collected_keys.remove(key)
+
+            elif action == 'Pick_up':
+                key = detail
                 collected_keys.add(key)
-                print(f"Pick_up_{key.upper()}_key")
-                agent_pos = key_pos  # Update agent's position to the key's location
-                
-                # Update human position based on remaining actions
-                for remaining_action, remaining_detail in actions[instruction_number:]:
-                    if remaining_action == 'Move':
-                        dx, dy = directions[remaining_detail]
-                        new_hx, new_hy = human_pos[0] + dx, human_pos[1] + dy
-                        if grid[new_hx][new_hy] != 'W':  # Move human if not a wall
-                            human_pos = (new_hx, new_hy)
-                
-                # Path to human
-                path_to_human = find_path(grid, agent_pos, human_pos, collected_keys)
-                for direction, pos in path_to_human:
-                    print(f"{direction} {pos}")
-                
-                print(f"Locate_human: {human_pos}")
-                print(f"Move_to_Human:")
-                agent_pos = human_pos  # Update agent's position to the human's location
+                f.write(f"Pick_up_{key.upper()}_key\n")
 
-                # Drop the key
-                print(f"Drop_{key.upper()}_key")
-                collected_keys.remove(key)
+            elif action == 'Unlock':
+                key = detail
+                if key in collected_keys:
+                    f.write(f"Unlock_{key.upper()}_door\n")
+                    collected_keys.remove(key)
 
-        elif action == 'Pick_up':
-            key = detail
-            collected_keys.add(key)
-            print(f"Pick_up_{key.upper()}_key")
-
-        elif action == 'Unlock':
-            key = detail
-            if key in collected_keys:
-                print(f"Unlock_{key.upper()}_door")
-                collected_keys.remove(key)
-
-        instruction_number += 1
-
-    return agent_pos, human_pos
+            instruction_number += 1
 
 # Main execution function
 def main(grid_file, actions_file):
     grid, agent_pos, human_pos, keys = load_grid(grid_file)
-    actions = load_human_actions(actions_file)
-    simulate(grid, agent_pos, human_pos, actions, keys)
+    actions, human_pos = load_human_actions(actions_file, human_pos)
+
+    # Create output file based on the input file's name
+    test_case_number = os.path.splitext(os.path.basename(grid_file))[0].split('_')[0]
+    result_file = os.path.join("Results", f"{test_case_number}_result.txt")
+    os.makedirs("Results", exist_ok=True)  # Ensure Results directory exists
+    simulate(grid, agent_pos, human_pos, actions, keys, result_file)
 
 # Example usage
 if __name__ == "__main__":
     import sys
     if len(sys.argv) != 3:
-        print("Usage: python P2_testing.py <grid_file> <actions_file>")
+        print("Usage: python p2.py <grid_file> <actions_file>")
     else:
         main(sys.argv[1], sys.argv[2])
