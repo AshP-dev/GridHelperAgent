@@ -28,25 +28,34 @@ def update_human_position(human_pos, action, detail):
         dx, dy = directions[detail]
         new_hx, new_hy = human_pos[0] + dx, human_pos[1] + dy
         return (new_hx, new_hy)
+        
     return human_pos
 
 # Parse human actions
-def load_human_actions(filename, human_pos):
+def load_human_actions(filename, human_pos, grid):
     actions = []
     with open(filename, 'r') as file:
         for line in file:
             parts = line.strip().split(': ')
             if len(parts) < 2:
                 continue
-            
             if parts[0].startswith("Move"):
                 action, direction = parts[0].split()
-                human_pos = update_human_position(human_pos, action, direction)
-                print(f"Human's new position: {human_pos}")  # Update human's position
+                direction = direction.upper()
+                human_pos = update_human_position(human_pos, action, direction, grid)
                 actions.append((action, direction))
             elif parts[0].startswith("Instruction"):
-                key_color = parts[1].split()[-2][0].lower()
-                actions.append(('Request', key_color))
+                instruction = parts[1].strip()
+                if "unlock" in instruction:
+                    # Find the closest door to the updated human position
+                    closest_door, door_pos = find_closest_door(human_pos, grid)
+                    if closest_door:
+                        key_color = closest_door.lower()
+                        actions.append(('Request', key_color))
+                        actions.append(('Unlock', key_color))
+                else:
+                    key_color = instruction.split()[-2][0].lower()
+                    actions.append(('Request', key_color))
             elif parts[0].startswith("Pick_up"):
                 key_color = parts[0].split('_')[2][0].lower()
                 actions.append(('Pick_up', key_color))
@@ -55,6 +64,22 @@ def load_human_actions(filename, human_pos):
                 actions.append(('Unlock', key_color))
     return actions, human_pos
 
+def find_closest_door(human_pos, grid):
+    rows, cols = len(grid), len(grid[0])
+    min_distance = float('inf')
+    closest_door = None
+    door_pos = None
+    for i in range(rows):
+        for j in range(cols):
+            cell = grid[i][j]
+            if cell in key_door_map.values():
+                distance = abs(human_pos[0] - i) + abs(human_pos[1] - j)
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_door = cell
+                    door_pos = (i, j)
+    return closest_door, door_pos
+
 # Heuristic function for A*
 def heuristic(start, end):
     return abs(start[0] - end[0]) + abs(start[1] - end[1])
@@ -62,6 +87,7 @@ def heuristic(start, end):
 # A* pathfinding function
 def find_path(grid, start, goal, collected_keys):
     rows, cols = len(grid), len(grid[0])
+
     heap = [(0, start)]
     costs = {start: 0}
     parent_map = {start: None}
@@ -93,29 +119,38 @@ def find_path(grid, start, goal, collected_keys):
         current = parent
 
     return path[::-1]  # Reverse path
+    
+    
 
 # Simulation function with updated human position tracking
 def simulate(grid, agent_pos, human_pos, actions, keys, result_file):
     collected_keys = set()
+    print(f"Initial collected_keys: {collected_keys}")
     instruction_number = 1
 
     with open(result_file, "w") as f:
+        print('012') 
         f.write(f"My_position {agent_pos}\n")
         
         for action, detail in actions:
+            print(f'013: Action: {action}, Detail: {detail}')
             if action == 'Move':
-                human_pos = update_human_position(human_pos, action, detail)
+                print('014')
+                human_pos = update_human_position(human_pos, action, detail, grid)
                 f.write(f"Human_position {human_pos}\n")
-            
             elif action == 'Request':
+                print('015')
                 key = detail
                 if key in keys:
+                    print('023')
                     key_pos = keys[key]
                     path_to_key = find_path(grid, agent_pos, key_pos, collected_keys)
+                    
                     for direction, pos in path_to_key:
-                        f.write(f"{direction} {pos}\n")
+                        f.write(f"Move {direction} {pos}\n")
                     
                     collected_keys.add(key)
+                    print(f"Collected key: {key}, collected_keys: {collected_keys}")
                     f.write(f"Pick_up_{key.upper()}_key\n")
                     agent_pos = key_pos
 
@@ -124,39 +159,49 @@ def simulate(grid, agent_pos, human_pos, actions, keys, result_file):
                     f.write(f"Locate_human: {human_pos}\n")
                     f.write("Move_to_Human:\n")
                     for direction, pos in path_to_human:
-                        f.write(f"{direction} {pos}\n")
-                    
+                        f.write(f"Move {direction} {pos}\n")
+                    #agent_pos = human_pos
+
                     f.write(f"Drop_{key.upper()}_key\n")
                     collected_keys.remove(key)
+                    print(f"Dropped key: {key}, collected_keys: {collected_keys}")
+                    
 
             elif action == 'Pick_up':
+                print('016')
                 key = detail
                 collected_keys.add(key)
+                print(f"Picked up key: {key}, collected_keys: {collected_keys}")
                 f.write(f"Pick_up_{key.upper()}_key\n")
 
             elif action == 'Unlock':
+                print('017')
                 key = detail
                 if key in collected_keys:
                     f.write(f"Unlock_{key.upper()}_door\n")
                     collected_keys.remove(key)
+                    print(f"Unlocked door with key: {key}, collected_keys: {collected_keys}")
 
             instruction_number += 1
+            print('018')
 
 # Main execution function
 def main(grid_file, actions_file):
+    print('021')
     grid, agent_pos, human_pos, keys = load_grid(grid_file)
-    actions, human_pos = load_human_actions(actions_file, human_pos)
+    actions, human_pos = load_human_actions(actions_file, human_pos, grid)
 
     # Create output file based on the input file's name
     test_case_number = os.path.splitext(os.path.basename(grid_file))[0].split('_')[0]
     result_file = os.path.join("Results", f"{test_case_number}_result.txt")
     os.makedirs("Results", exist_ok=True)  # Ensure Results directory exists
     simulate(grid, agent_pos, human_pos, actions, keys, result_file)
+    
 
 # Example usage
 if __name__ == "__main__":
     import sys
     if len(sys.argv) != 3:
-        print("Usage: python p2.py <grid_file> <actions_file>")
+        print("Usage: python P2_testing.py <grid_file> <actions_file>")
     else:
         main(sys.argv[1], sys.argv[2])

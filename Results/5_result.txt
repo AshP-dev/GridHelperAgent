@@ -1,1 +1,15 @@
 My_position (2, 8)
+Move UP (1, 8)
+Move UP (0, 8)
+Pick_up_B_key
+Locate_human: (4, 4)
+Move_to_Human:
+Move DOWN (1, 8)
+Move DOWN (2, 8)
+Move LEFT (2, 7)
+Move LEFT (2, 6)
+Move LEFT (2, 5)
+Move LEFT (2, 4)
+Move DOWN (3, 4)
+Move DOWN (4, 4)
+Drop_B_key
