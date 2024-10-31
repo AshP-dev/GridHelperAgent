@@ -5,7 +5,7 @@ Move LEFT (0, 5)
 Move LEFT (0, 4)
 Move LEFT (0, 3)
 Pick_up_Y_key
-Locate_human: (9, 6)
+Locate_human: (5, 6)
 Move_to_Human:
 Move RIGHT (0, 4)
 Move RIGHT (0, 5)
@@ -15,8 +15,4 @@ Move DOWN (2, 6)
 Move DOWN (3, 6)
 Move DOWN (4, 6)
 Move DOWN (5, 6)
-Move DOWN (6, 6)
-Move DOWN (7, 6)
-Move DOWN (8, 6)
-Move DOWN (9, 6)
 Drop_Y_key

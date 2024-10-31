@@ -1,5 +1,6 @@
 import os
 import heapq
+import re
 
 # Define movement directions and commands
 directions = {'UP': (-1, 0), 'DOWN': (1, 0), 'LEFT': (0, -1), 'RIGHT': (0, 1)}
@@ -22,31 +23,43 @@ def load_grid(filename):
                 keys[cell] = (i, j)  # store key locations
     return grid, agent_pos, human_pos, keys
 
-# Update human position based on action
-def update_human_position(human_pos, action, detail):
+# Function to update the human position
+def update_human_position(human_pos, action, direction, grid):
+    print("025")
     if action == 'Move':
-        dx, dy = directions[detail]
+        print(f"Attempting to move human in direction: {direction}")
+        dx, dy = directions[direction.upper()]
         new_hx, new_hy = human_pos[0] + dx, human_pos[1] + dy
-        return (new_hx, new_hy)
-        
+        # Check boundaries and obstacles
+        if 0 <= new_hx < len(grid) and 0 <= new_hy < len(grid[0]):
+            if grid[new_hx][new_hy] != 'W':
+                # Update the grid to reflect the new human position
+                grid[human_pos[0]][human_pos[1]] = '.'  # Clear old position
+                grid[new_hx][new_hy] = 'h'             # Set new position
+                human_pos = (new_hx, new_hy)
     return human_pos
 
-# Parse human actions
-def load_human_actions(filename, human_pos, grid):
+# Function to interpret the instructions
+def interpret_instructions(filename, human_pos, grid):
     actions = []
     with open(filename, 'r') as file:
         for line in file:
-            parts = line.strip().split(': ')
+            line = line.strip()
+            if not line:
+                continue
+            # Split the line based on whitespace or special characters
+            parts = re.split(r'\s+|[:]', line)
             if len(parts) < 2:
                 continue
             if parts[0].startswith("Move"):
-                action, direction = parts[0].split()
-                direction = direction.upper()
-                human_pos = update_human_position(human_pos, action, direction, grid)
-                actions.append((action, direction))
+                if len(parts) >= 2:
+                    action, direction = parts[0], parts[1].upper()
+                    # Update human position
+                    human_pos = update_human_position(human_pos, action, direction, grid)
+                    actions.append((action, direction))
             elif parts[0].startswith("Instruction"):
-                instruction = parts[1].strip()
-                if "unlock" in instruction:
+                instruction = ' '.join(parts[1:]).strip()
+                if "unlock" in instruction.lower():
                     # Find the closest door to the updated human position
                     closest_door, door_pos = find_closest_door(human_pos, grid)
                     if closest_door:
@@ -54,14 +67,17 @@ def load_human_actions(filename, human_pos, grid):
                         actions.append(('Request', key_color))
                         actions.append(('Unlock', key_color))
                 else:
+                    # Handle other instructions if necessary
                     key_color = instruction.split()[-2][0].lower()
                     actions.append(('Request', key_color))
             elif parts[0].startswith("Pick_up"):
-                key_color = parts[0].split('_')[2][0].lower()
-                actions.append(('Pick_up', key_color))
+                if len(parts) >= 3:
+                    key_color = parts[2][0].lower()
+                    actions.append(('Pick_up', key_color))
             elif parts[0].startswith("Unlock"):
-                key_color = parts[0].split('_')[1][0].lower()
-                actions.append(('Unlock', key_color))
+                if len(parts) >= 2:
+                    key_color = parts[1][0].lower()
+                    actions.append(('Unlock', key_color))
     return actions, human_pos
 
 def find_closest_door(human_pos, grid):
@@ -135,9 +151,9 @@ def simulate(grid, agent_pos, human_pos, actions, keys, result_file):
         for action, detail in actions:
             print(f'013: Action: {action}, Detail: {detail}')
             if action == 'Move':
-                print('014')
+                print(f"Moving human to new position based on direction: {detail}")
                 human_pos = update_human_position(human_pos, action, detail, grid)
-                f.write(f"Human_position {human_pos}\n")
+                #f.write(f"Human_position {human_pos}\n")
             elif action == 'Request':
                 print('015')
                 key = detail
@@ -189,7 +205,7 @@ def simulate(grid, agent_pos, human_pos, actions, keys, result_file):
 def main(grid_file, actions_file):
     print('021')
     grid, agent_pos, human_pos, keys = load_grid(grid_file)
-    actions, human_pos = load_human_actions(actions_file, human_pos, grid)
+    actions, human_pos = interpret_instructions(actions_file, human_pos, grid)
 
     # Create output file based on the input file's name
     test_case_number = os.path.splitext(os.path.basename(grid_file))[0].split('_')[0]
