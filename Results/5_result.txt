@@ -1,0 +1,10 @@
+My_position (2, 8)
+Pick_up_R_key
+Locate_human: (6, 4)
+Move_to_Human:
+Move RIGHT (5, 1)
+Move RIGHT (5, 2)
+Move RIGHT (5, 3)
+Move RIGHT (5, 4)
+Move DOWN (6, 4)
+Drop_R_key
